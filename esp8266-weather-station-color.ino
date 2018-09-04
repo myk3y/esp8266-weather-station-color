@@ -27,6 +27,10 @@ See more at https://blog.squix.org
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
+// WiFiManager
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>     
 
 #include <XPT2046_Touchscreen.h>
 #include "TouchControllerWS.h"
@@ -38,6 +42,7 @@ See more at https://blog.squix.org
  * - ESP8266 WeatherStation by Daniel Eichhorn
  * - Json Streaming Parser by Daniel Eichhorn
  * - simpleDSTadjust by neptune2
+ * - WiFi Manager by Tzapu https://github.com/tzapu/WiFiManager
  ***/
 
 #include <JsonListener.h>
@@ -70,8 +75,8 @@ uint16_t palette[] = {ILI9341_BLACK, // 0
                       0x7E3C
                       }; //3
 
-int SCREEN_WIDTH = 240;
-int SCREEN_HEIGHT = 320;
+int SCREEN_WIDTH = 320;
+int SCREEN_HEIGHT = 480;
 // Limited to 4 colors due to memory constraints
 int BITS_PER_PIXEL = 2; // 2^2 =  4 colors
 
@@ -129,30 +134,19 @@ long timerPress;
 bool canBtnPress;
 time_t dstOffset = 0;
 
-void connectWifi() {
-  if (WiFi.status() == WL_CONNECTED) return;
-  //Manual Wifi
-  Serial.print("Connecting to WiFi ");
-  Serial.print(WIFI_SSID);
-  Serial.print("/");
-  Serial.println(WIFI_PASS);
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(WIFI_HOSTNAME);
-  WiFi.begin(WIFI_SSID,WIFI_PASS);
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    if (i>80) i=0;
-    drawProgress(i,"Connecting to WiFi '" + String(WIFI_SSID) + "'");
-    i+=10;
-    Serial.print(".");
-  }
-  drawProgress(100,"Connected to WiFi '" + String(WIFI_SSID) + "'");
-  Serial.print("Connected...");
-}
-
 void setup() {
   Serial.begin(115200);
+
+
+//WiFiManager
+    //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
+  
+  wifiManager.autoConnect("weatherstation");
+
+    //if you get here you have connected to the WiFi
+    Serial.println("connected...yeey :)");
+
 
   // The LED pin needs to set HIGH
   // Use this pin to save energy
@@ -166,7 +160,7 @@ void setup() {
   gfx.fillBuffer(MINI_BLACK);
   gfx.commit();
 
-  connectWifi();
+//  connectWifi();
 
   Serial.println("Initializing touch screen...");
   ts.begin();
@@ -639,4 +633,3 @@ String getTime(time_t *timestamp) {
   sprintf(buf, "%02d:%02d", timeInfo->tm_hour, timeInfo->tm_min);
   return String(buf);
 }
-
